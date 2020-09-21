@@ -1,0 +1,177 @@
+Problem 2:
+
+This function call results in an error because, even though the template is
+not being violated by passing it a parameter that is not <ItemType>. the
+object Coord likely does not have a defined behavior that allows for
+comparisons using the '<' operator. So, when the insert function calls
+findFirstAtLeast, the program is unable to compare two Coords using the
+less than operator, and this leads to a compilation error.
+
+Problem 3:
+
+a:
+	const int N = some value;
+	bool hasContacted[N][N];
+	...
+	int numIntermediaries[N][N];
+	for (int i = 0; i < N; i++) <- O(N) * N^2 -> O(N^3)
+	{
+	    numIntermediaries[i][i] = -1; <- O(1)
+	    			      	   // the concept of intermediary
+				           // makes no sense in this case
+	    for (int j = 0; j < N; j++) <- O(N)*N -> O(N^2)
+	    {
+	        if (i == j) <- O(1)
+	            continue;
+	        numIntermediaries[i][j] = 0; <- O(1)
+	        for (int k = 0; k < N; k++)  <- O(N)
+	        {
+	            if (k == i  ||  k == j)  <- O(1)
+	                continue;
+		    if (hasContacted[i][k]  &&  hasContacted[k][j]) <- O(1)
+	        	numIntermediaries[i][j]++;  
+	        }
+	    }
+	}
+
+This algorithm makes three layers of loops through N items with each run.
+This means the overall time complexity will be O(N^3).
+
+b:
+	const int N = some value;
+	bool hasContacted[N][N];
+	...
+	int numIntermediaries[N][N];
+	for (int i = 0; i < N; i++)  <- O(N)*N^2 -> O(N^3)
+	{
+	    numIntermediaries[i][i] = -1; <- O(1)
+	    			           // the concept of intermediary
+				           // makes no sense in this case
+	    for (int j = 0; j < i; j++)  <- O((N^2+N)/2) -> O(N^2)
+					   // loop limit is now i, not N
+	    {
+	        numIntermediaries[i][j] = 0; <- O(1)
+	        for (int k = 0; k < N; k++) <- O(N)
+	        {
+	            if (k == i  ||  k == j) <- O(1)
+	                continue;
+		    if (hasContacted[i][k]  &&  hasContacted[k][j]) <- O(1)
+	        	numIntermediaries[i][j]++;
+	        }
+	        numIntermediaries[j][i] = numIntermediaries[i][j]; <- O(1)
+	    }
+	}
+
+This algorithm has a smaller constant of proportionality than the algorithm
+in part A, but it still has an overall time complexity of O(N^3). The
+second loop makes on average N/2 steps instead of N, but this is still
+directly proportional to the number of elements in the array N.
+
+Problem 4:
+
+a:
+
+void unite(const Set& set1, const Set& set2, Set& result)
+{
+    const Set* sp = &set2;
+    if (&result == &set1) <- worst case, this is not true
+    {
+        if (&result == &set2)
+                return;
+    }
+    else if (&result == &set2) <- worst case, this is not true
+        sp = &set1;
+    else
+    {
+        result = set1;
+        if (&set1 == &set2) <- worst case, this is not true
+            return;
+    }
+    for (int k = 0; k < sp->size(); k++) <- O(N)*N/2 -> O(N^2)
+    {
+        ItemType v; <- O(1)
+        sp->get(k, v); <- O(N/2)
+        result.insert(v); <- O(1)
+    }
+}
+
+If none of the conditional statements check out, the function goes and checks
+each element of Set 2 using a for loop, which is an O(N) time complexity
+process that in turn calls the get function, which also has an overall linear
+time complexity. This means the overall time complexity of the loop is O(N^2).
+
+b:
+
+void Set::unite(const Set& set1, const Set& set2)
+{
+    vector<ItemType> v;
+
+      // copy all items into v;
+    for (Node* p1 = set1.m_head->m_next; p1 != set1.m_head; p1 = p1->m_next)
+    <- O(N)
+        v.push_back(p1->m_value); <- O(1)
+    for (Node* p2 = set2.m_head->m_next; p2 != set2.m_head; p2 = p2->m_next)
+    <- O(N)
+        v.push_back(p2->m_value); <- O(1)
+
+      // sort v using an O(N log N) algorithm
+    sort(v.begin(), v.end()); <- O(N log N)
+
+      // delete result nodes (other than the dummy node)
+    while (m_head->m_next != m_head) <- O(N)
+        doErase(m_head->m_next); <- O(1)
+
+      // copy unique items from v into result
+    for (size_t k = 0; k < v.size(); k++) <- O(N)
+    {
+        if (k == 0  ||  v[k] != v[k-1])  <- O(1)// add non-duplicates
+	    insertBefore(m_head, v[k]); <- O(1)
+    }
+
+      // v is destroyed when function returns
+}
+
+Overall, this algorithm makes one O(N log N) call, and then does 4 O(N) loops.
+However, none of these four loops are nested, which means they are all linear
+time. We will account for only the highest order term, which in this case is
+N log N. So the overall time complexity is O(N log N).
+
+c:
+
+void Set::unite(const Set& set1, const Set& set2)
+{
+    const Set* sp = &set2;
+    if (this == &set1)
+    {
+        if (this == &set2)
+                return;
+    }
+    else if (this == &set2)
+        sp = &set1;
+    else
+    {
+        *this = set1;
+        if (&set1 == &set2)
+            return;
+    }
+    Node* p1 = m_head->m_next;
+    Node* p2 = sp->m_head->m_next;
+    while (p1 != m_head  &&  p2 != sp->m_head) <- O(N)
+    {
+        if (p1->m_value < p2->m_value) <- O(1)
+            p1 = p1->m_next;
+        else <- O(1)
+        {
+            if (p1->m_value > p2->m_value) <- O(1)
+                insertBefore(p1, p2->m_value);
+            else  <- O(1)
+                p1 = p1->m_next;
+            p2 = p2->m_next;
+        }
+    }
+    for ( ; p2 != sp->m_head; p2 = p2->m_next) <- O(N)
+        insertBefore(m_head, p2->m_value);
+}
+
+This function makes use of two O(N) loops that are not nested. Therefore its
+overall time complexity is now O(N).

@@ -1,0 +1,335 @@
+Steven Chu
+905-094-800
+Project 3 Report
+
+1) The Goblin move function is located in the source file entitled Monster.cpp.
+It utilizes the recursive helper function smartPath in the same file. The
+move function itself is not recursive. smartPath utilizes a recursive breadth
+first search method to find the best move to the player.
+
+2 & 3) In addition to the skeleton files, I added the source files:
+
+Monster.cpp
+Player.cpp
+Dungeon.cpp
+GameObject.cpp
+
+and their respective header files. I also made significant changes to the
+Game.cpp file and its header.
+
+
+Monster.cpp:
+
+This source file contains the Monster base class, as well as its derived
+classes: Goblin, Snakewoman, Bogeyman, and Dragon. This source file serves
+to implement all the functionality regarding a monster's move: their attacks,
+and all the different movement behaviors.
+
+Significant algorithms:
+
+Constructor: The base class Monster constructor takes in a Dungeon pointer,
+row and column coordinates, and a name in the form of a string. The Dungeon
+pointer enables the Monster object to interact with the dungeon it is present
+in, and the coordinate passed to the constructor indicates its starting
+position when the monster is generated inside the dungeon. The body of the
+constructor consists of a series of statements checking which type of monster
+has been instantiated based on the name parameter. It decides what initial
+values the monster will possess for its other attributes like strength,
+hitpoints, weapon etc. based on its name.
+
+Attack: All the monsters utilize the same attack function from the Monster
+base class. When attack is called, the function will compute the probability
+of a hit and the attack damage based on the player's stats, and the stats
+of the monster's current weapon. It then carries out the attack if it is
+successful and outputs the appropriate message to write to the game's display.
+
+Move: The base class Monster move function does not actually implement any
+moving functionality. This task is left to the move function in the subclasses.
+Instead, all the move function does in the base class is to check if the
+monster is asleep, and otherwise attack the player if the player is present
+in an adjacent cell.
+
+Dumb Distance: This measure of distance is utilized by Bogeymen and
+Snakewomen. It is a direct sum of the rows and columns separating the monster
+and the player, disregarding whatever is in the cells separating them.
+
+Dumb Move: This algorithm works the following way:
+
+if monster is in same row as player:
+   move right or left if not blocked
+if monster is in same column as player:
+   move up or down if not blocked
+else
+   check vertical direction of player: UP/DOWN
+   check horizontal direction of player: LEFT/RIGHT
+      move in direction not blocked
+   if not blocked in either direction:
+      choose randomly between the two
+   else
+	do nothing
+
+Smart Path: This is a recursive breadth first search used by Goblin's move
+function. It works as follows:
+
+Given a starting point and a 2D array with a queue:
+
+check all adjacent cells:
+      if not visited and not blocked:
+      	 add +1 to number of steps from player and store in cell
+	 push coordinate onto queue
+      else:
+         pop queue
+	 recursively call the function with the popped coordinate
+
+When the smartPath function completes, it should modify the 2D array such
+that it contains the number of steps to the player for each accessible cell.
+These values are checked by the Goblin move function.
+
+In the goblin move function itself:
+
+check all adjacent cells:
+      if number in cell <=15 and <= number in current cell and not blocked:
+      	 move to the adjacent cell
+      else:
+	 do nothing
+
+Next, the Snakewoman and Bogeyman move functions are exactly the same code:
+
+if asleep:
+   do nothing, decrement sleep
+if player is in adjacent cell:
+   attack player
+if player is not in adjacent cell but is within smell distance:
+   call dumbMove towards player
+
+The only difference is that the Snakewoman will move when the Player is 3
+steps away, but the Bogeyman will begin to move when the player is 5 steps away
+
+This monster class is able to interact with the Dungeon and a Player in the
+same dungeon, because the Dungeon object contains a list of Monster pointers.
+
+
+Player.cpp:
+
+This class implements the Player class:
+It stores the player's stats, tracks if the player is dead or has won,
+and stores the player's inventory as a list of GameObjects. The player is
+able to interact with other objects and monsters present in the same Dungeon
+because the Dungeon will contain a pointer to a Player object.
+
+Constructor: The player is initialized with a dungeon pointer, a random empty
+location in the dungeon, and all the beginning stats specified by the spec.
+The default beginning weapon for the Player is a short sword.
+
+Player move:
+
+This function takes a keyboard input as it's parameter:
+It first checks if the Player is asleep, then regenerates health with a 1 in
+10 probability. It then calls a switch statement with the keyboard input
+as a parameter:
+
+if character indicates movement:
+   if monster in that direction:
+      attack monster
+   if cell in indicated direction is unoccupied:
+      move to cell
+if cheat:
+   increase hitpoints and strength
+if picking up item:
+   if golden idol is present:
+      player wins game
+   if object is present:
+      if inventory full:
+      	 output error: inventory full
+      else:
+	 add item to inventory
+else:
+   do nothing
+
+View inventory: Prints out list of items in player's inventory
+
+if player wanted to wield weapon:
+   accept input:
+      select item indicated, cast to weapon
+   if weapon:
+      set as wielded weapon
+   else:
+      do nothing
+if player wanted to read a scroll:
+   accept input:
+      select item indicated, cast to scroll
+   if scroll:
+      apply effect, delete scroll
+   else:
+      do nothing
+
+Attack: When attack is called, the function will compute the probability
+of a hit and the attack damage based on the player's stats, the stats
+of the Player's current weapon, and the monster's stats. It then carries out
+the attack if it is successful and outputs the appropriate message to write to
+the game's display.
+
+
+Dungeon.cpp:
+
+This source file implements the Dungeon class. This class serves to act as
+the medium through which all the other classes can interact with each other.
+It contains a list of pointers to all the Monsters present, a list of
+pointers to all the GameObjects on the floor, and a pointer to the Player.
+Therefore it is able to access all public methods of each object and carry
+out any intermediary interactions.
+
+Dungeon constructor: the Dungeon constructor takes the level and goblin smell
+distance as parameters. It executes as follows:
+
+Set every cell to wall
+
+Six times:
+    Randomly generate rectangles that will fit in dungeon
+    carve out empty space into the dungeon.
+    Push the locations of the rectangle onto a list.
+
+Iterate through the list:
+    check in each direction from the rectangle:
+    	if another room in that direction:
+	   generate corridor to connect to that room
+
+if level < 4:
+   choose random empty cell:
+   	  place stairs
+
+if level = 4:
+   choose random empty cell:
+   	  place golden idol
+
+Three times:
+   with equal probability:
+   	choose random empty cell:
+	       generate weapon and place in cell
+	    or:
+	       generate scroll and place in cell
+
+Compute number of monsters based on level (M)
+M times:
+  with equal probability
+       choose random empty cell:
+       	      generate type of monster and place in cell
+
+The Dungeon destructor iterates through both the GameObjects list and the
+Monsters list, and deletes any remaining pointers.
+
+The Dungeon display function displays the dungeon grid:
+
+generate 2D array:
+	 iterate through all cells:
+	 	 if object present:
+		    set character to object
+
+         if monster present:
+	         set character to monster
+
+         if player present:
+	    	 set character to player
+
+iterate through all cells:
+	print cell
+
+if message is not empty:
+   	print message
+
+The getObject function serves to return the pointer to whatever GameObject
+is present at a given location, if there is an object present there:
+
+for each GameObject in Dungeon:
+    if object position matches given position:
+       return object
+    else:
+       return nullptr
+
+The getMonster and hasMonster functions are very similar. They return the
+pointer to the Monster at a given position, and true respectively, if there
+is a monster at that position:
+
+for each Monster in Dungeon:
+    if monster position matches given position:
+       return monster/true
+    else:
+       return nullptr/false
+
+The move monsters function: checks if any of the monsters are dead. If not,
+it moves the monsters.
+
+for all monsters in dungeon:
+    if dead:
+       with specified probability:
+       	    drop item
+	    delete monster
+
+     else:
+       move monster
+
+Add Player: This function adds a Player pointer to the Dungeon. It checks
+first to make sure the passed location is valid, and that there is not
+already a player present in the dungeon. Then it initializes a new Player
+object and sets the Dungeon's Player pointer to point to it.
+
+Path Exists: this is a recursive depth first search function. It serves to
+safeguard against having a level where the player is blocked from the stairs
+or golden idol by walls due to imperfect level generation.
+
+Given a start coordinate and an end coordinate:
+      if start = end:
+      	 return true
+      if start coord is a wall:
+      	 return false
+      check all adjacent cells:
+      	 if not visited and not blocked:
+	    recursive call to pathExists:
+	    	 return true
+      else:
+	 return false
+
+
+GameObject.cpp:
+
+This class contains the base class GameObject and its derived classes Weapon
+and Scroll. There are no non-trivial algorithms here. For both the Weapon and
+Scroll classes, the constructors apply the necessary initial values for
+the object based on the name, and necessary getters for it to interact with
+Dungeon and Player/Monster. The GameObject class interacts with Dungeon,
+Monster, and Player, which are all able to contain GameObject pointers.
+Each Actor has a data member of a single Weapon pointer to indicate their
+wielded weapon.
+
+
+Game.cpp:
+
+This class contains the Game class, which contains a Dungeon.
+The Game class constructor takes care of checking if the player is generated
+in a solvable Dungeon level using the pathExists function in Dungeon.
+
+It also implements the takePlayerTurn function:
+
+Taking the keybard input:
+       if player went down stairs:
+       	  increment level
+	  generate new Dungeon (check if solvable)
+	  choose random empty cell
+	  transport player to cell
+       if player wants to view inventory:
+       	  call Player viewInventory function
+       else:
+          call Player move function
+
+The play function sets up a repeating loop where if the player is not dead
+and has not won, the player and monsters alternate turns, then the dungeon
+is displayed.
+
+4) Possible bugs:
+
+It seems that very rarely, the Dungeon constructor generates a level where
+there are rooms that do not have connecting corridors and are effectively
+isolated. However this is very rare, and has occurred minimally in tests,
+making it difficult to detect. If it occurs, launching a new game will
+fix the issue. Due to the pathExists algorithm, the player should never
+be placed in an isolated room.
